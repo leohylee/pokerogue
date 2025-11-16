@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2025 Pagefault Games
+# SPDX-License-Identifier: AGPL-3.0-only
+
+services:
+  pokerogue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - VITE_BYPASS_LOGIN=1
+      - VITE_BYPASS_TUTORIAL=0
+      - PORT=8000
+      - NODE_ENV=development
+    volumes:
+      # Mount assets and locales to ensure offline capability
+      - ./assets:/app/assets:ro
+      - ./locales:/app/locales:ro
+    restart: unless-stopped
+    container_name: pokerogue-app
