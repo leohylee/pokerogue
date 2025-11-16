@@ -2,6 +2,23 @@
 
 This guide explains how to run PokéRogue completely offline with all assets (images, sounds, etc.) included.
 
+## Repository Overview
+
+**You only need the `pokerogue` repository for offline play.** Here's what each repository does:
+
+| Repository | Required for Offline? | Purpose |
+|------------|----------------------|---------|
+| **pokerogue** | ✅ YES | Main game client (browser app) |
+| **pokerogue-assets** | ✅ YES (submodule) | Images, sprites, audio, animations |
+| **pokerogue-locales** | ✅ YES (submodule) | Translations (29 languages) |
+| **rogueserver** | ❌ NO | Backend API for user accounts, cloud saves, daily challenges |
+
+**Your current setup works 100% offline** because:
+- `VITE_BYPASS_LOGIN=1` is enabled
+- All saves go to browser localStorage
+- All assets are bundled in the Docker image
+- No server connection needed
+
 ## Prerequisites
 
 - Docker Desktop installed and running
@@ -122,3 +139,17 @@ pokerogue/
 - First build may take several minutes
 - Subsequent builds use cached layers and are much faster
 - All assets are bundled in the image for true offline capability
+
+## Adding Online Features (Optional)
+
+If you want user accounts, cloud saves, and daily challenges, you'll need the **rogueserver** backend:
+
+1. Clone the rogueserver repo (should be in parent directory: `../rogueserver`)
+2. Use the full setup: `docker compose -f docker-compose-with-server.yml up`
+
+This will start:
+- PostgreSQL database (port 5432)
+- Backend API server (port 8001)
+- Frontend game client (port 8000)
+
+The [docker-compose-with-server.yml](docker-compose-with-server.yml) file contains the full configuration.

@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2025 Pagefault Games
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# Full-stack offline-capable setup with backend server
+# This includes: Database + Backend API + Frontend Game Client
+# All data stored locally - ready for cloud deployment later
+
+services:
+  # MariaDB database for user accounts and save data
+  database:
+    image: mariadb:11
+    container_name: pokerogue-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: pokeroguedb
+      MYSQL_USER: pokerogue
+      MYSQL_PASSWORD: pokerogue
+    volumes:
+      - database_data:/var/lib/mysql
+    networks:
+      - pokerogue_network
+    ports:
+      - "3306:3306"
+
+  # Backend API server (Go)
+  server:
+    build:
+      context: ../rogueserver
+      dockerfile: Dockerfile
+    container_name: pokerogue-server
+    restart: unless-stopped
+    environment:
+      debug: "true"
+      dbaddr: database
+      dbuser: pokerogue
+      dbpass: pokerogue
+      dbname: pokeroguedb
+      gameurl: http://localhost:8000
+      callbackurl: http://localhost:8001
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - pokerogue_network
+    ports:
+      - "8001:8001"
+
+  # Frontend game client (Node.js + Vite)
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pokerogue-client
+    restart: unless-stopped
+    environment:
+      # Disable login bypass to use real authentication
+      - VITE_BYPASS_LOGIN=0
+      - VITE_BYPASS_TUTORIAL=0
+      - VITE_SERVER_URL=http://localhost:8001
+      # These are dummy values since we're running locally
+      - VITE_DISCORD_CLIENT_ID=1234567890
+      - VITE_GOOGLE_CLIENT_ID=1234567890
+      - PORT=8000
+      - NODE_ENV=development
+    volumes:
+      # Mount assets as read-only for offline capability
+      - ./assets:/app/assets:ro
+      - ./locales:/app/locales:ro
+    depends_on:
+      - server
+    networks:
+      - pokerogue_network
+    ports:
+      - "8000:8000"
+
+volumes:
+  database_data:
+    driver: local
+
+networks:
+  pokerogue_network:
+    driver: bridge
